@@ -1,4 +1,3 @@
-# Toolchain definition
 CC = riscv64-unknown-elf-gcc
 AS = riscv64-unknown-elf-as
 LD = riscv64-unknown-elf-ld
