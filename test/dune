@@ -1,0 +1,11 @@
+(executable
+ (name test_alu)
+ (libraries hardcaml my_hardcaml_riscv)
+ (preprocess (pps ppx_hardcaml))
+)
+
+(executable
+ (name test_datapath)
+ (libraries hardcaml my_hardcaml_riscv)
+ (preprocess (pps ppx_hardcaml))
+)
