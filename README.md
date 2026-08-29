@@ -146,4 +146,3 @@ The generated structural Verilog netlist (`rv32i_simple.v`) can be imported dire
 This project is open-source software released under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0). Feel free to fork, adapt, and build safer processors.
 
 
-```
