@@ -1,6 +1,12 @@
+(library
+ (name my_hardcaml_riscv)
+ (libraries hardcaml)
+ (preprocess (pps ppx_hardcaml))
+)
+
 (executable
  (name top)
- (libraries hardcaml)
+ (libraries hardcaml my_hardcaml_riscv)
  (preprocess (pps ppx_hardcaml))
 )
 
