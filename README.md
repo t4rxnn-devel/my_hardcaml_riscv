@@ -1,8 +1,3 @@
-Here is an expansive, comprehensive, 200-line-style professional `README.md` file designed for your [my_hardcaml_riscv](https://github.com/t4rxnn-devel/my_hardcaml_riscv) project. It dives deep into architectural philosophy, detailed module specifications, build automation, memory maps, and debugging instructions.
-
----
-
-
 # My HardCaml RISC-V Core
 
 > **"Because writing Verilog by hand is a form of self-harm. A simple RV32I core built in HardCaml and OCaml because we like type safety more than sleeping."**
@@ -23,10 +18,9 @@ Here is an expansive, comprehensive, 200-line-style professional `README.md` fil
 
 ## 1. Overview
 
-`my_hardcaml_riscv` is a clean-room, type-safe single-cycle RV32I integer core implementation written entirely using **HardCaml**—an embedded domain-specific language (EDSL) in OCaml for hardware design. 
+Writing Verilog by hand is a fast track to questioning your life choices, so we decided to let OCaml do the heavy lifting instead. 
 
-By leveraging OCaml's powerful module system and type inference, this project eliminates common RTL boilerplate bugs, uninitialized wire hazards, and structural mismatches before a single line of Verilog is generated.
-
+`my_hardcaml_riscv` is a clean-room, single-cycle RV32I integer core built entirely in [HardCaml](https://github.com/janestreet/hardcaml). It compiles cleanly, runs basic C code, and keeps type safety tighter than our budget. It’s a straightforward way to explore hardware design without accidentally turning your hair gray from unassigned wire hazards.
 ---
 
 ## 2. Directory Architecture
