@@ -11,23 +11,34 @@ end
 
 module O = struct
   type 'a t = {
-    alu_op    : 'a[@width 3];
-    alu_src   : 'a;
     reg_write : 'a;
+    alu_src   : 'a;
+    mem_read  : 'a;
     mem_write : 'a;
+    branch    : 'a;
+    jump      : 'a;
+    alu_op    : 'a[@width 3];
   } [@@deriving sexp_of, hardcaml]
 end
 
 let create (scope : Scope.t) (i : I.t) =
   let open Signal in
-  let is_alu_imm = i.opcode ==:. 0x13 in
-  let is_alu_reg = i.opcode ==:. 0x33 in
-  let is_load    = i.opcode ==:. 0x03 in
-  let is_store   = i.opcode ==:. 0x23 in
+  
+  let is_alu_imm = i.opcode ==: from_int ~width:7 0x13 in
+  let is_alu_reg = i.opcode ==: from_int ~width:7 0x33 in
+  let is_load    = i.opcode ==: from_int ~width:7 0x03 in
+  let is_store   = i.opcode ==: from_int ~width:7 0x23 in
+  let is_branch  = i.opcode ==: from_int ~width:7 0x63 in
+  let is_jal     = i.opcode ==: from_int ~width:7 0x6F in
+  let is_jalr    = i.opcode ==: from_int ~width:7 0x67 in
 
-  let reg_write = is_alu_imm |: is_alu_reg |: is_load in
-  let mem_write = is_store in
+  let reg_write = is_alu_imm |: is_alu_reg |: is_load |: is_jal |: is_jalr in
   let alu_src   = is_alu_imm |: is_load |: is_store in
-  let alu_op    = i.funct3 in
+  let mem_read  = is_load in
+  let mem_write = is_store in
+  let branch    = is_branch in
+  let jump      = is_jal |: is_jalr in
+  
+  let alu_op = mux2 is_alu_reg (select i.funct3 2 0) (constz ~width:3 0) in
 
-  { O.alu_op; alu_src; reg_write; mem_write }
+  { O.reg_write; alu_src; mem_read; mem_write; branch; jump; alu_op }
