@@ -20,31 +20,28 @@ end
 
 let create (scope : Scope.t) (i : I.t) =
   let open Signal in
-  
-  (* 1. Program Counter Register & Increment Logic *)
-  let pc_spec = Reg_spec.create ~clock:i.clock ~clear:i.clear () in
-  let pc = Reg.spec pc_spec (width 32) in
-  let next_pc = pc +:. 4 in
-  pc <== next_pc;
 
+  (* 1. Hazard Detection & Stall Signal Recurrence Binding *)
+  let rec pc_spec = Reg_spec.create ~clock:i.clock ~clear:i.clear ()
+  and pc = Reg.spec pc_spec (width 32)
+  
   (* 2. RV32I Instruction Field Slicing *)
-  let opcode = select i.instr 6 0 in
-  let funct3 = select i.instr 14 12 in
-  let funct7 = select i.instr 31 25 in
-  let rs1    = select i.instr 19 15 in
-  let rs2    = select i.instr 24 20 in
-  let rd     = select i.instr 11 7 in
+  and opcode = select i.instr 6 0
+  and funct3 = select i.instr 14 12
+  and funct7 = select i.instr 31 25
+  and rs1    = select i.instr 19 15
+  and rs2    = select i.instr 24 20
+  and rd     = select i.instr 11 7
 
   (* 3. Control Unit Decoding *)
-  let ctrl = Control.create scope { Control.I.opcode; funct3; funct7 } in
+  and ctrl = Control.create scope { Control.I.opcode; funct3; funct7 }
 
-  (* 4. Hardware Register File Instantiation (Forward Declaration Feedbacks) *)
-  (* The regfile needs to be instantiated so we can pull rd1 and rd2 into the ALU & FIFO *)
-  let rec regfile_out = Regfile.create scope {
+  (* 4. Hardware Register File *)
+  and regfile_out = Regfile.create scope {
     Regfile.I.clock;
     we  = ctrl.reg_write;
     wa  = rd;
-    wd  = mux2 ctrl.mem_read i.mem_rdata alu_res.result; (* Writeback Mux: Load vs ALU *)
+    wd  = mux2 ctrl.mem_read i.mem_rdata alu_res.result;
     ra1 = rs1;
     ra2 = rs2;
   }
@@ -54,17 +51,17 @@ let create (scope : Scope.t) (i : I.t) =
   and alu_input = { ALU.I.a = regfile_out.rd1; b = alu_b; op = ctrl.alu_op }
   and alu_res = ALU.create scope alu_input
 
-  (* 6. MMIO and FIFO Peripheral Address Decoding (0x30000000) *)
+  (* 6. MMIO Circular FIFO Peripheral Stream Interconnect (0x30000000) *)
   and is_mmio = (alu_res.result ==: from_int ~width:32 0x30000000)
   and fifo_inst = Fifo.create scope {
     Fifo.I.clock = i.clock;
     clear = i.clear;
     wr_en = ctrl.mem_write &: is_mmio;
     rd_en = gnd;
-    din   = regfile_out.rd2; (* Passes actual store register payload into FIFO buffer *)
+    din   = regfile_out.rd2;
   }
 
-  (* 7. Hazard Detection Unit Hookup *)
+  (* 7. Hazard Detection & Forwarding Unit Integration *)
   and hazard_ctrl = Hazard.create scope {
     Hazard.I.ex_mem_reg_write = ctrl.reg_write;
     ex_mem_rd        = rd;
@@ -78,7 +75,10 @@ let create (scope : Scope.t) (i : I.t) =
     if_id_rs2        = rs2;
   } in
 
+  (* 8. PC Update Logic with Hazard Stall Support *)
+  let next_pc = mux2 hazard_ctrl.stall pc (pc +:. 4) in
+  pc <== next_pc;
+
   ignore fifo_inst;
-  ignore hazard_ctrl;
 
   { O.pc; alu_out = alu_res.result; mem_wdata = regfile_out.rd2 }
