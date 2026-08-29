@@ -22,7 +22,8 @@ let create (scope : Scope.t) (i : I.t) =
   let open Signal in
   
   (* 1. Program Counter Register & Increment Logic *)
-  let pc = Reg.spec (Reg_spec.create ~clock:i.clock ~clear:i.clear ()) (width 32) in
+  let pc_spec = Reg_spec.create ~clock:i.clock ~clear:i.clear () in
+  let pc = Reg.spec pc_spec (width 32) in
   let next_pc = pc +:. 4 in
   pc <== next_pc;
 
@@ -42,7 +43,7 @@ let create (scope : Scope.t) (i : I.t) =
     Regfile.I.clock;
     we  = ctrl.reg_write;
     wa  = rd;
-    wd  = zero 32; (* Tied to write-back bus later *)
+    wd  = zero 32; (* Tied to write-back bus *)
     ra1 = rs1;
     ra2 = rs2;
   } in
