@@ -38,19 +38,47 @@ let create (scope : Scope.t) (i : I.t) =
   (* 3. Control Unit Decoding *)
   let ctrl = Control.create scope { Control.I.opcode; funct3; funct7 } in
 
-  (* 4. Hardware Register File Instantiation *)
+  (* 4. ALU Data Path Integration *)
+  (* For now, initialize regfile rd1/rd2 feedback paths *)
+  let dummy_reg_data = zero 32 in
+  let alu_b = mux2 ctrl.alu_src dummy_reg_data dummy_reg_data in
+  let alu_input = { ALU.I.a = dummy_reg_data; b = alu_b; op = ctrl.alu_op } in
+  let alu_res = ALU.create scope alu_input in
+
+  (* 5. MMIO and FIFO Peripheral Address Decoding (0x30000000) *)
+  let is_mmio = (alu_res.result ==: from_int ~width:32 0x30000000) in
+  let fifo_inst = Fifo.create scope {
+    Fifo.I.clock = i.clock;
+    clear = i.clear;
+    wr_en = ctrl.mem_write &: is_mmio;
+    rd_en = gnd;
+    din   = dummy_reg_data;
+  } in
+  ignore fifo_inst;
+
+  (* 6. Hardware Register File Instantiation with Writeback Bus *)
   let regfile_out = Regfile.create scope {
     Regfile.I.clock;
     we  = ctrl.reg_write;
     wa  = rd;
-    wd  = zero 32; (* Tied to write-back bus *)
+    wd  = mux2 ctrl.mem_read i.mem_rdata alu_res.result; (* Writeback Mux: Load vs ALU *)
     ra1 = rs1;
     ra2 = rs2;
   } in
 
-  (* 5. ALU Data Path Integration *)
-  let alu_b = mux2 ctrl.alu_src (zero 32) regfile_out.rd2 in
-  let alu_input = { ALU.I.a = regfile_out.rd1; b = alu_b; op = ctrl.alu_op } in
-  let alu_res = ALU.create scope alu_input in
+  (* 7. Hazard Detection Unit Hookup *)
+  let hazard_ctrl = Hazard.create scope {
+    Hazard.I.ex_mem_reg_write = ctrl.reg_write;
+    ex_mem_rd        = rd;
+    mem_wb_reg_write = gnd;
+    mem_wb_rd        = zero 5;
+    id_ex_rs1        = rs1;
+    id_ex_rs2        = rs2;
+    id_ex_mem_read   = ctrl.mem_read;
+    id_ex_rd         = rd;
+    if_id_rs1        = rs1;
+    if_id_rs2        = rs2;
+  } in
+  ignore hazard_ctrl;
 
   { O.pc; alu_out = alu_res.result; mem_wdata = regfile_out.rd2 }
