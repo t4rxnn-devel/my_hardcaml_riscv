@@ -41,8 +41,8 @@ let create (scope : Scope.t) (i : I.t) =
   (* 4. ALU Data Path Integration *)
   (* For now, initialize regfile rd1/rd2 feedback paths *)
   let dummy_reg_data = zero 32 in
-  let alu_b = mux2 ctrl.alu_src dummy_reg_data dummy_reg_data in
-  let alu_input = { ALU.I.a = dummy_reg_data; b = alu_b; op = ctrl.alu_op } in
+  let alu_b = mux2 ctrl.alu_src (zero 32) regfile_out.rd2 in
+  let alu_input = { ALU.I.a = regfile_out.rd1; b = alu_b; op = ctrl.alu_op } in
   let alu_res = ALU.create scope alu_input in
 
   (* 5. MMIO and FIFO Peripheral Address Decoding (0x30000000) *)
